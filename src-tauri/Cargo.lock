@@ -734,6 +734,8 @@ name = "cu-desktop"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
+ "chrono",
+ "reqwest 0.12.28",
  "ring",
  "serde",
  "serde_json",
