@@ -301,8 +301,7 @@ pub async fn companion_pairing_exchange(
 
 #[command]
 pub async fn companion_session_refresh() -> Result<(), String> {
-    let _guard = SESSION_REFRESH_LOCK.lock()
-        .map_err(|_| "COMPANION_SESSION_LOCK_FAILED".to_string())?;
+    let _guard = SESSION_REFRESH_LOCK.lock().await;
     let mut current = read_session()?.ok_or_else(|| "COMPANION_SESSION_NOT_FOUND".to_string())?;
     let refresh = current.refresh_token.clone();
     let response = request_json::<RefreshResponse>(
@@ -336,8 +335,7 @@ pub async fn companion_session_refresh() -> Result<(), String> {
 
 #[command]
 pub async fn companion_session_revoke() -> Result<(), String> {
-    let _guard = SESSION_REFRESH_LOCK.lock()
-        .map_err(|_| "COMPANION_SESSION_LOCK_FAILED".to_string())?;
+    let _guard = SESSION_REFRESH_LOCK.lock().await;
     let mut current = read_session()?.ok_or_else(|| "COMPANION_SESSION_NOT_FOUND".to_string())?;
     let token = current.access_token.clone();
     let result: Result<Value, String> = request_json(
@@ -350,6 +348,9 @@ pub async fn companion_session_revoke() -> Result<(), String> {
     current.refresh_token.zeroize();
     match result {
         Ok(_) => delete_credential(SESSION_TARGET),
-        Err(error) => Err(error),
+        Err(error) => {
+            let _ = delete_credential(SESSION_TARGET);
+            Err(error)
+        }
     }
 }
