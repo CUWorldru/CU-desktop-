@@ -18,7 +18,7 @@ Foundation, compatibility assessment, and an initial Tauri 2 shell are committed
 - [Desktop UX](docs/DESKTOP-UX.md)
 - [Security baseline](docs/SECURITY.md)
 - [Roadmap](docs/ROADMAP.md)
-- [Release process](docs/RELEASES.md)
+- [Release process](docs/RELEASES.md)\n- [Build and validation status](docs/BUILD-STATUS.md)
 - [ADR 0001: separate desktop build boundary](docs/adr/0001-desktop-build-boundary.md)
 
 ## Repository boundary
