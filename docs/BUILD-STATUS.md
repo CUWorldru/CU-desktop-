@@ -13,7 +13,7 @@
 - No Windows build has been run in this environment.
 - No `package-lock.json` or `Cargo.lock` has been generated yet.
 - The current Vite page is a diagnostic placeholder, not the CU application.
-- The notification smoke test has not yet been run on Windows.
+- The notification smoke test has not yet been run on Windows. The Tauri notification plugin documents that Windows notifications work for installed apps; development mode is not a reliable end-to-end validation target.
 - Tray behavior, process lifecycle, single-instance behavior, startup, media, and calls require Windows testing.
 - Installer bundling is intentionally disabled until the approved CU branding/icon assets and release-signing plan are ready.
 
