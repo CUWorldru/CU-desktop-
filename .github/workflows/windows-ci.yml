@@ -12,10 +12,10 @@ permissions:
 
 jobs:
   windows-check:
-    name: Frontend and Rust checks (Windows x64)
+    name: Shell checks (Windows x64)
     runs-on: windows-latest
     steps:
-      - name: Checkout
+      - name: Checkout Desktop shell
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -26,12 +26,90 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install frontend dependencies
+      - name: Install shell dependencies
         run: npm ci --no-audit --no-fund
 
-      - name: Typecheck and build frontend
+      - name: Typecheck and build shell diagnostics
         run: npm run build
 
       - name: Compile Tauri Rust shell
         run: cargo check --locked --manifest-path src-tauri/Cargo.toml
 
+  windows-package:
+    name: Build installable CU Desktop (Windows x64)
+    needs: windows-check
+    # Never expose the private-source token to pull-request workflows.
+    if: github.event_name != 'pull_request'
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Desktop shell
+        uses: actions/checkout@v4
+
+      - name: Checkout pinned private CU source
+        uses: actions/checkout@v4
+        with:
+          repository: CUWorldru/journey-structure-import-82fde408
+          ref: 2175e7d5327a4d45854d5d8a1b80c964ab537c54
+          token: ${{ secrets.CU_SOURCE_READ_TOKEN }}
+          path: private-cu
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build CU Desktop frontend
+        working-directory: private-cu
+        env:
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.CU_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ secrets.CU_SUPABASE_PROJECT_ID }}
+          VITE_MAPBOX_TOKEN: ${{ secrets.CU_MAPBOX_TOKEN }}
+          VITE_FIREBASE_API_KEY: ${{ secrets.CU_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.CU_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.CU_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.CU_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.CU_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.CU_FIREBASE_APP_ID }}
+          VITE_FIREBASE_MEASUREMENT_ID: ${{ secrets.CU_FIREBASE_MEASUREMENT_ID }}
+          VITE_FIREBASE_VAPID_KEY: ${{ secrets.CU_FIREBASE_VAPID_KEY }}
+        shell: pwsh
+        run: |
+          if (-not $env:VITE_SUPABASE_PUBLISHABLE_KEY) {
+            throw "Missing GitHub Actions secret CU_SUPABASE_PUBLISHABLE_KEY."
+          }
+          if (-not $env:VITE_SUPABASE_PROJECT_ID) {
+            throw "Missing GitHub Actions secret CU_SUPABASE_PROJECT_ID."
+          }
+          npm ci --no-audit --no-fund
+          npm run build:desktop
+
+      - name: Stage bundled CU frontend into Tauri
+        shell: pwsh
+        run: |
+          $source = "private-cu/dist/client"
+          if (-not (Test-Path "$source/index.html")) {
+            throw "CU Desktop SPA output not found at $source/index.html"
+          }
+          New-Item -ItemType Directory -Force -Path "dist" | Out-Null
+          Copy-Item -Path "$source/*" -Destination "dist" -Recurse -Force
+          if (-not (Test-Path "dist/index.html")) {
+            throw "Failed to stage CU frontend into the Tauri frontendDist directory."
+          }
+
+      - name: Install Desktop shell dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build Windows installer
+        run: npm run tauri:build -- --bundles nsis
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: CU-Desktop-Windows-x64
+          path: src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
+          retention-days: 14
