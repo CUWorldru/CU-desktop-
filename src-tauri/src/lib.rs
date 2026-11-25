@@ -31,6 +31,7 @@ fn tray_icon() -> Image<'static> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_http::init())
         .setup(|app| {
             let open = MenuItem::with_id(app, "open", "Open CU Desktop", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "Quit CU Desktop", true, None::<&str>)?;
