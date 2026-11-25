@@ -105,6 +105,8 @@ pub struct PairingQrPayload {
     protocol: &'static str,
     challenge_id: String,
     challenge_secret: String,
+    server_nonce: String,
+    key_fingerprint: String,
     expires_at: String,
     device_name: String,
 }
@@ -112,8 +114,8 @@ pub struct PairingQrPayload {
 #[derive(Serialize)]
 pub struct PairingStartResult {
     qr_payload: PairingQrPayload,
+    qr_url: String,
     key_fingerprint: String,
-    server_nonce: String,
     poll_after_seconds: u64,
 }
 
@@ -135,16 +137,37 @@ pub async fn companion_pairing_start(device_name: String) -> Result<PairingStart
         || created.server_nonce.is_empty() || created.key_fingerprint != identity.key_fingerprint {
         return Err("COMPANION_RESPONSE_INVALID".into());
     }
-    Ok(PairingStartResult {
-        qr_payload: PairingQrPayload {
-            protocol: "CU-COMPANION-PAIR-V1",
-            challenge_id: created.challenge_id,
-            challenge_secret: created.challenge_secret,
-            expires_at: created.expires_at,
-            device_name: name.to_string(),
-        },
-        key_fingerprint: created.key_fingerprint,
+    let expiry = expiry_unix(&created.expires_at)?;
+    let signature = companion_identity_sign(
+        created.challenge_id.clone(),
+        expiry,
+        created.key_fingerprint.clone(),
+        created.server_nonce.clone(),
+    )?;
+    let _: Value = request_json(
+        Method::POST,
+        &format!("/pairing-challenges/{}/proof", created.challenge_id),
+        Some(json!({"algorithm": "Ed25519", "signature": signature})),
+        Some(format!("Companion-Pairing {}", created.challenge_secret)),
+    ).await?;
+
+    let qr_payload = PairingQrPayload {
+        protocol: "CU-COMPANION-PAIR-V1",
+        challenge_id: created.challenge_id,
+        challenge_secret: created.challenge_secret,
         server_nonce: created.server_nonce,
+        key_fingerprint: created.key_fingerprint.clone(),
+        expires_at: created.expires_at,
+        device_name: name.to_string(),
+    };
+    let payload_bytes = serde_json::to_vec(&qr_payload)
+        .map_err(|_| "COMPANION_QR_PAYLOAD_INVALID".to_string())?;
+    let encoded_payload = URL_SAFE_NO_PAD.encode(payload_bytes);
+    let qr_url = format!("https://seeyoumore.ru/l/companion/pair#cu-companion={encoded_payload}");
+    Ok(PairingStartResult {
+        qr_payload,
+        qr_url,
+        key_fingerprint: created.key_fingerprint,
         poll_after_seconds: created.poll_after_seconds.clamp(1, 10),
     })
 }
