@@ -264,6 +264,86 @@ pub fn companion_session_store(
     result
 }
 
+
+fn read_session() -> Result<Option<StoredCompanionSession>, String> {
+    let target = wide(SESSION_TARGET);
+    let mut credential: *mut CREDENTIALW = ptr::null_mut();
+    let ok = unsafe { CredReadW(target.as_ptr(), CRED_TYPE_GENERIC, 0, &mut credential) };
+    if ok == 0 {
+        let error = unsafe { GetLastError() };
+        if error == ERROR_NOT_FOUND { return Ok(None); }
+        return Err("COMPANION_SESSION_STORE_READ_FAILED".into());
+    }
+
+    let mut encoded = unsafe {
+        let item = &*credential;
+        if item.CredentialBlob.is_null() || item.CredentialBlobSize == 0
+            || item.CredentialBlobSize > 2048
+        {
+            CredFree(credential as *const c_void);
+            return Err("COMPANION_SESSION_STORE_INVALID".into());
+        }
+        let bytes = std::slice::from_raw_parts(
+            item.CredentialBlob, item.CredentialBlobSize as usize
+        ).to_vec();
+        CredFree(credential as *const c_void);
+        bytes
+    };
+
+    let parsed = serde_json::from_slice::<StoredCompanionSession>(&encoded)
+        .map_err(|_| "COMPANION_SESSION_STORE_INVALID".to_string());
+    encoded.zeroize();
+    let mut session = parsed?;
+    if !valid_opaque_token(&session.access_token)
+        || !valid_opaque_token(&session.refresh_token)
+        || !valid_uuid(&session.session_id)
+        || !valid_uuid(&session.device_id)
+        || session.access_expires_at.is_empty() || session.access_expires_at.len() > 40
+        || session.refresh_expires_at.is_empty() || session.refresh_expires_at.len() > 40
+        || session.device_name.trim().is_empty() || session.device_name.len() > 80
+    {
+        session.access_token.zeroize();
+        session.refresh_token.zeroize();
+        return Err("COMPANION_SESSION_STORE_INVALID".into());
+    }
+    Ok(Some(session))
+}
+
+#[derive(serde::Serialize)]
+pub struct CompanionSessionInfo {
+    present: bool,
+    session_id: Option<String>,
+    device_id: Option<String>,
+    device_name: Option<String>,
+    access_expires_at: Option<String>,
+    refresh_expires_at: Option<String>,
+    generation: Option<u64>,
+}
+
+#[command]
+pub fn companion_session_info() -> Result<CompanionSessionInfo, String> {
+    match read_session()? {
+        Some(mut session) => {
+            let info = CompanionSessionInfo {
+                present: true,
+                session_id: Some(session.session_id.clone()),
+                device_id: Some(session.device_id.clone()),
+                device_name: Some(session.device_name.clone()),
+                access_expires_at: Some(session.access_expires_at.clone()),
+                refresh_expires_at: Some(session.refresh_expires_at.clone()),
+                generation: Some(session.generation),
+            };
+            session.access_token.zeroize();
+            session.refresh_token.zeroize();
+            Ok(info)
+        }
+        None => Ok(CompanionSessionInfo {
+            present: false, session_id: None, device_id: None, device_name: None,
+            access_expires_at: None, refresh_expires_at: None, generation: None,
+        }),
+    }
+}
+
 #[command]
 pub fn companion_session_clear() -> Result<(), String> {
     delete_credential(SESSION_TARGET)
