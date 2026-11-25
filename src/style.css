@@ -1,0 +1,40 @@
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #f5f5f7;
+  background: #101114;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* { box-sizing: border-box; }
+
+body { margin: 0; min-width: 360px; min-height: 100vh; }
+
+.shell {
+  width: min(680px, calc(100% - 48px));
+  margin: 12vh auto 0;
+  padding: 48px;
+  border: 1px solid #2b2d33;
+  border-radius: 24px;
+  background: linear-gradient(145deg, #191b20, #121317);
+  box-shadow: 0 24px 80px #0008;
+}
+
+.brand-mark {
+  display: grid; place-items: center; width: 56px; height: 56px;
+  border: 1px solid #5a9cff; border-radius: 18px;
+  color: #fff; background: #203b63; font-weight: 800; letter-spacing: -0.08em;
+}
+
+.eyebrow { margin: 32px 0 10px; color: #8aaee0; font-size: 11px; font-weight: 700; letter-spacing: .16em; }
+h1 { margin: 0; font-size: clamp(36px, 7vw, 56px); letter-spacing: -.055em; }
+.lead { color: #b7bbc5; font-size: 17px; }
+
+.status { display: flex; gap: 14px; margin: 32px 0; padding: 18px; border: 1px solid #30343d; border-radius: 16px; background: #ffffff06; }
+.status-dot { flex: 0 0 9px; width: 9px; height: 9px; margin-top: 5px; border-radius: 50%; background: #50d69a; box-shadow: 0 0 16px #50d69a88; }
+.status strong { font-size: 14px; }
+.status p { margin: 6px 0 0; color: #aeb3be; font-size: 13px; line-height: 1.55; }
+
+button { border: 0; border-radius: 12px; padding: 12px 16px; color: #08111f; background: #9bc5ff; font: inherit; font-weight: 700; cursor: pointer; }
+button:disabled { opacity: .6; cursor: wait; }
+.feedback { min-height: 20px; color: #aeb3be; font-size: 13px; }
