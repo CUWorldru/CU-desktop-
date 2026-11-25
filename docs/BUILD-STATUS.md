@@ -11,16 +11,16 @@
 - Minimal Tauri capability file granting core defaults and notification defaults.
 
 ## Confirmed validation
-- GitHub Actions Windows x64 run **passed** on 2026-11-25 for commit `8653c844d0523d78df46d63807a0d226ced16e47`.
-- The successful run completed frontend dependency installation, TypeScript check + Vite production build, and Rust `cargo check`.
-- [Windows CI run](https://github.com/CUWorldru/CU-desktop-/actions/runs/45535167657)
+- GitHub Actions Windows x64 run **passed** on 2026-11-25 for commit `79bf9672d1b050ae124198ffd2c234aaef060454`.
+- The successful run completed `npm ci`, TypeScript check + Vite production build, and Rust `cargo check --locked`.
+- `package-lock.json` and `src-tauri/Cargo.lock` are committed, so dependency resolution is reproducible.
+- [Locked Windows CI run](https://github.com/CUWorldru/CU-desktop-/actions/runs/45536345904)
 
 This confirms that the current frontend scaffold and Rust shell compile on the Windows runner. It does not yet prove that the full CU application works inside the shell.
 
 ## Not yet verified
 - The private CU source desktop build target is in draft PR [#145](https://github.com/CUWorldru/journey-structure-import-82fde408/pull/145); it has not been merged into the private source `main`.
 - The Tauri shell still displays a diagnostic placeholder, not the CU application.
-- `package-lock.json` and `src-tauri/Cargo.lock` are now committed. CI uses `npm ci` and `cargo check --locked` for reproducible dependency resolution.
 - The notification smoke test has not yet been run interactively on a Windows machine.
 - Tray behavior, process lifecycle, single-instance behavior, startup, media, and calls require hands-on Windows testing.
 - A temporary CU icon is present to satisfy Windows resource compilation; replace it with final approved branding before release.
