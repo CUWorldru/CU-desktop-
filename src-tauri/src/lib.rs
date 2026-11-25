@@ -40,7 +40,7 @@ pub fn run() {
     let builder = builder.invoke_handler(tauri::generate_handler![
         companion_identity::companion_identity_get,
         companion_identity::companion_identity_sign,
-        companion_identity::companion_session_store,
+        companion_identity::companion_session_info,
         companion_identity::companion_session_clear,
         companion_identity::companion_session_is_present
     ]);
