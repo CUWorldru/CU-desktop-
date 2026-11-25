@@ -1,0 +1,65 @@
+use tauri::{
+    image::Image,
+    menu::{Menu, MenuItem},
+    tray::TrayIconBuilder,
+    Manager, WindowEvent,
+};
+
+fn tray_icon() -> Image<'static> {
+    // Draw a tiny monochrome CU mark in memory so the first shell does not
+    // depend on a generated binary icon asset. Replace with approved branding
+    // assets before packaging a public release.
+    const SIZE: u32 = 32;
+    let mut rgba = vec![0_u8; (SIZE * SIZE * 4) as usize];
+    for y in 0..SIZE {
+        for x in 0..SIZE {
+            let dx = x as i32 - 15;
+            let dy = y as i32 - 15;
+            let d2 = dx * dx + dy * dy;
+            let i = ((y * SIZE + x) * 4) as usize;
+            if (85..=145).contains(&d2) {
+                rgba[i] = 150;
+                rgba[i + 1] = 195;
+                rgba[i + 2] = 255;
+                rgba[i + 3] = 255;
+            }
+        }
+    }
+    Image::new_owned(rgba, SIZE, SIZE)
+}
+
+pub fn run() {
+    tauri::Builder::default()
+        .plugin(tauri_plugin_notification::init())
+        .setup(|app| {
+            let open = MenuItem::with_id(app, "open", "Open CU Desktop", true, None::<&str>)?;
+            let quit = MenuItem::with_id(app, "quit", "Quit CU Desktop", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&open, &quit])?;
+
+            TrayIconBuilder::new()
+                .icon(tray_icon())
+                .tooltip("CU Desktop")
+                .menu(&menu)
+                .on_menu_event(|app, event| match event.id().as_ref() {
+                    "open" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                    "quit" => app.exit(0),
+                    _ => {}
+                })
+                .build(app)?;
+            Ok(())
+        })
+        .on_window_event(|window, event| {
+            if let WindowEvent::CloseRequested { api, .. } = event {
+                // Closing the window hides CU; the tray Quit command exits it.
+                api.prevent_close();
+                let _ = window.hide();
+            }
+        })
+        .run(tauri::generate_context!())
+        .expect("failed to run CU Desktop");
+}
