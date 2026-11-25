@@ -24,9 +24,9 @@ const HEX_CHARS: &[u8] = b"0123456789abcdef";
 static IDENTITY_LOCK: Mutex<()> = Mutex::new(());
 
 #[derive(serde::Serialize)]
-pub struct CompanionIdentityInfo {
-    public_key: String,
-    key_fingerprint: String,
+pub pub(super) struct CompanionIdentityInfo {
+    pub(super) public_key: String,
+    pub(super) key_fingerprint: String,
 }
 
 fn wide(value: &str) -> Vec<u16> {
@@ -188,15 +188,15 @@ pub fn companion_identity_sign(
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-struct StoredCompanionSession {
-    access_token: String,
-    access_expires_at: String,
-    refresh_token: String,
-    refresh_expires_at: String,
-    session_id: String,
-    device_id: String,
-    device_name: String,
-    generation: u64,
+pub(super) struct StoredCompanionSession {
+    pub(super) access_token: String,
+    pub(super) access_expires_at: String,
+    pub(super) refresh_token: String,
+    pub(super) refresh_expires_at: String,
+    pub(super) session_id: String,
+    pub(super) device_id: String,
+    pub(super) device_name: String,
+    pub(super) generation: u64,
 }
 
 fn valid_opaque_token(value: &str) -> bool {
@@ -205,7 +205,7 @@ fn valid_opaque_token(value: &str) -> bool {
         .unwrap_or(false)
 }
 
-fn write_credential(target_name: &str, username_value: &str, blob: &[u8]) -> Result<(), String> {
+pub(super) fn write_credential(target_name: &str, username_value: &str, blob: &[u8]) -> Result<(), String> {
     if blob.is_empty() || blob.len() > 2048 {
         return Err("COMPANION_SESSION_INVALID".into());
     }
@@ -224,7 +224,7 @@ fn write_credential(target_name: &str, username_value: &str, blob: &[u8]) -> Res
     Ok(())
 }
 
-fn delete_credential(target_name: &str) -> Result<(), String> {
+pub(super) fn delete_credential(target_name: &str) -> Result<(), String> {
     let target = wide(target_name);
     let ok = unsafe { CredDeleteW(target.as_ptr(), CRED_TYPE_GENERIC, 0) };
     if ok == 0 {
@@ -235,7 +235,7 @@ fn delete_credential(target_name: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn read_session() -> Result<Option<StoredCompanionSession>, String> {
+pub(super) fn read_session() -> Result<Option<StoredCompanionSession>, String> {
     let target = wide(SESSION_TARGET);
     let mut credential: *mut CREDENTIALW = ptr::null_mut();
     let ok = unsafe { CredReadW(target.as_ptr(), CRED_TYPE_GENERIC, 0, &mut credential) };
