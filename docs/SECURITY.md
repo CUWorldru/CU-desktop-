@@ -9,6 +9,7 @@
 - Start with minimal Tauri capabilities and allowlists.
 - Expose only narrowly scoped Rust commands; validate all arguments and authorization context.
 - Do not expose arbitrary filesystem, shell, process, or network access to the web frontend.
+- The Tauri HTTP plugin is limited to `https://seeyoumore.ru/_serverFn/**`; do not widen this scope to the whole host or arbitrary URLs without a reviewed need.
 - Restrict navigation to trusted application origins; handle external URLs through explicit validation.
 - Validate deep links and notification payloads before routing or performing actions.
 - Keep WebView content security policy restrictive and review every required exception.
