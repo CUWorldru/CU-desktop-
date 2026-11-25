@@ -16,3 +16,9 @@ tauri-build = { version = "2" }
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-notification = "2"
 tauri-plugin-http = "2"
+
+[target.'cfg(windows)'.dependencies]
+base64 = "0.22"
+ring = "0.17"
+serde = { version = "1", features = ["derive"] }
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security_Credentials"] }
