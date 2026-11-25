@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   windows-check:
@@ -35,11 +35,9 @@ jobs:
       - name: Compile Tauri Rust shell
         run: cargo check --manifest-path src-tauri/Cargo.toml
 
-      - name: Export generated lockfiles for pinning
-        uses: actions/upload-artifact@v4
+      - name: Commit generated lockfiles
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          name: cu-desktop-lockfiles
-          path: |
-            package-lock.json
-            src-tauri/Cargo.lock
-          if-no-files-found: error
+          commit_message: "build: pin desktop dependency lockfiles"
+          file_pattern: package-lock.json src-tauri/Cargo.lock
