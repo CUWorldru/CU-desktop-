@@ -74,8 +74,16 @@ async fn request_json<T: DeserializeOwned>(
             _ => "COMPANION_REQUEST_REJECTED",
         }.into());
     }
-    let parsed = serde_json::from_slice::<T>(&bytes)
-        .map_err(|_| "COMPANION_HTTP_RESPONSE_INVALID".to_string());
+    // The revoke endpoint intentionally returns HTTP 204 with no body.
+    // Treat that exact response as JSON null so callers expecting Value can
+    // complete successfully; all other empty/malformed success bodies remain errors.
+    let parsed = if status == StatusCode::NO_CONTENT && bytes.is_empty() {
+        serde_json::from_value::<T>(Value::Null)
+            .map_err(|_| "COMPANION_HTTP_RESPONSE_INVALID".to_string())
+    } else {
+        serde_json::from_slice::<T>(&bytes)
+            .map_err(|_| "COMPANION_HTTP_RESPONSE_INVALID".to_string())
+    };
     bytes.zeroize();
     parsed
 }
