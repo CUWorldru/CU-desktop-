@@ -20,10 +20,11 @@ This confirms that the current frontend scaffold and Rust shell compile on the W
 ## Not yet verified
 - The private CU source desktop build target is in draft PR [#145](https://github.com/CUWorldru/journey-structure-import-82fde408/pull/145); it has not been merged into the private source `main`.
 - The Tauri shell still displays a diagnostic placeholder, not the CU application.
-- No `package-lock.json` or `Cargo.lock` is committed yet; dependency installation is not yet lockfile-reproducible.
+- `package-lock.json` and `src-tauri/Cargo.lock` are now committed. CI uses `npm ci` and `cargo check --locked` for reproducible dependency resolution.
 - The notification smoke test has not yet been run interactively on a Windows machine.
 - Tray behavior, process lifecycle, single-instance behavior, startup, media, and calls require hands-on Windows testing.
-- Installer bundling is intentionally disabled until approved branding/icon assets and the release-signing plan are ready.
+- A temporary CU icon is present to satisfy Windows resource compilation; replace it with final approved branding before release.
+- Installer bundling is intentionally disabled until the release-signing plan is ready.
 
 ## Local prerequisites
 - Windows 10/11 x64 for the first target.
@@ -33,7 +34,7 @@ This confirms that the current frontend scaffold and Rust shell compile on the W
 
 ## Local shell commands
 ```powershell
-npm install
+npm ci
 npm run tauri -- dev
 ```
 
