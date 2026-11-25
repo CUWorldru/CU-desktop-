@@ -1,23 +1,27 @@
 # CU Desktop — Roadmap
 
 ## Phase 0 — Foundation
-- [x] Confirm separate public repository and product boundary.
-- [x] Record architecture and security principles.
-- [ ] Confirm private CU source integration strategy and pinned revision workflow.
+- [x] Confirm separate repository and product boundary.
+- [x] Record architecture, UX, security, and release principles.
+- [x] Inspect the CU source build configuration without modifying the source repository.
+- [x] Confirm the current CU app has a dedicated Capacitor SPA build but no Tauri/desktop target.
+- [x] Record the decision not to reuse the mobile build unchanged.
 
-## Phase 1 — Compatibility spike
-- [ ] Inspect the current CU repository build instructions and platform boundaries.
-- [ ] Identify the exact browser/SPA build entry point suitable for desktop.
-- [ ] Build a minimal Tauri 2 + WebView2 shell locally.
-- [ ] Validate authentication, routing, assets, and session persistence.
-- [ ] Validate Supabase Realtime and lifecycle behavior while the window is hidden.
-- [ ] Validate LiveKit calls, microphone, camera, and audio routing.
+## Phase 1 — Desktop compatibility seam
+- [ ] Agree and implement a separate desktop build target in the private CU source repository through an explicit reviewed change.
+- [ ] Add a desktop-specific build marker and runtime detector; do not broaden Capacitor-only `isNativeAppRuntime()` semantics.
+- [ ] Keep web SSR/PWA, Android, and iOS build paths unchanged.
+- [ ] Confirm the private-source delivery approach and pin an exact source revision.
+- [ ] Build a local static desktop bundle and verify TanStack Router asset/fallback behavior.
+- [ ] Validate auth persistence, OAuth/callbacks, Supabase Realtime, hidden-window lifecycle, and deep links.
+- [ ] Validate LiveKit microphone, camera, speaker selection, and call lifecycle on Windows.
 
-## Phase 2 — Windows integration
-- [ ] System tray and close-to-tray lifecycle.
-- [ ] Native notifications and deep-link navigation.
-- [ ] Startup controls and single-instance behavior.
-- [ ] File open/save flows.
+## Phase 2 — Tauri shell
+- [ ] Bootstrap Tauri 2 + Rust + WebView2 in this repository.
+- [ ] Load the locally bundled CU desktop assets (not the production website URL).
+- [ ] Implement close-to-tray, restore, explicit Quit, and single-instance behavior.
+- [ ] Implement native notifications and notification click-through routing.
+- [ ] Implement startup controls and secure file open/save flows.
 
 ## Phase 3 — Work mode
 - [ ] Define workspace and panel interaction model.
@@ -25,10 +29,10 @@
 - [ ] Add contextual AI entry points with explicit context and permission boundaries.
 
 ## Phase 4 — Release readiness
-- [ ] Windows x64 build and installer.
-- [ ] Code signing and signed updater.
-- [ ] CI build and smoke tests.
+- [ ] Windows x64 installer and code signing.
+- [ ] Signed updater and rollback validation.
+- [ ] CI build, automated checks, and Windows smoke tests.
 - [ ] Security, accessibility, performance, and regression checks.
 
 ## Scope guardrails
-Do not modify the main CU repository, Android, or iOS as part of this desktop foundation work. Shared CU changes require a separate, explicit review in the source repository.
+Do not modify the main CU repository as part of this desktop-repository work. Any shared CU build/runtime changes require a separate, explicit, reviewed change in the private source repository. Android and iOS behavior must remain unchanged.
