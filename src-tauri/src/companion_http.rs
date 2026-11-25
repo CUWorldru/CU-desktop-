@@ -6,7 +6,8 @@ use chrono::{DateTime, Utc};
 use reqwest::{header, Client, Method, StatusCode};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::sync::{Mutex, OnceLock};
+use std::sync::OnceLock;
+use tokio::sync::Mutex;
 use tauri::command;
 use zeroize::Zeroize;
 
@@ -15,7 +16,7 @@ const SESSION_TARGET: &str = "CU.Desktop.Companion.Session.v1";
 const SESSION_USER: &str = "CU Desktop Companion session";
 const MAX_RESPONSE_BYTES: usize = 8 * 1024;
 static HTTP_CLIENT: OnceLock<Client> = OnceLock::new();
-static SESSION_REFRESH_LOCK: Mutex<()> = Mutex::new(());
+static SESSION_REFRESH_LOCK: Mutex<()> = Mutex::const_new(());
 
 fn client() -> Result<&'static Client, String> {
     if let Some(client) = HTTP_CLIENT.get() {
@@ -151,6 +152,7 @@ pub struct PairingStatus {
     pub device_name: Option<String>,
     pub expires_at: Option<String>,
     pub approved_at: Option<String>,
+    #[serde(default)]
     pub proof_verified: bool,
 }
 
@@ -320,12 +322,16 @@ pub async fn companion_session_refresh() -> Result<(), String> {
             return Err(error);
         }
     };
-    persist_session(
+    let stored = persist_session(
         response.access_token, response.access_expires_at,
         response.refresh_token, response.refresh_expires_at,
         response.session_id, response.device_id,
         current.device_name.clone(), response.generation,
-    )
+    );
+    if stored.is_err() {
+        let _ = delete_credential(SESSION_TARGET);
+    }
+    stored
 }
 
 #[command]
