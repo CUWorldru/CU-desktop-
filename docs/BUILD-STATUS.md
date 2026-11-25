@@ -7,11 +7,13 @@
 - Rust system tray with Open and Quit actions.
 - Closing the main window hides it instead of terminating the process.
 - Tauri notification plugin registration and a frontend permission/send smoke-test control.
+- Tauri HTTP plugin registration with an allowlist limited to the CU server-function endpoint.
 - Minimal Tauri capability file granting core defaults and notification defaults.
 
 ## Not yet verified
 - A Windows GitHub Actions check workflow has been added. No workflow run has been observed yet, so compilation is not confirmed.
 - No Windows build has been run in this environment.
+- The private CU source desktop build target is on a separate review branch; the Tauri shell does not load it yet.
 - No `package-lock.json` or `Cargo.lock` has been generated yet; the initial CI currently uses `npm install` and is not yet lockfile-reproducible.
 - The current Vite page is a diagnostic placeholder, not the CU application.
 - The notification smoke test has not yet been run on Windows. The Tauri notification plugin documents that Windows notifications work for installed apps; development mode is not a reliable end-to-end validation target.
