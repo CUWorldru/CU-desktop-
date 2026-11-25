@@ -208,14 +208,21 @@ pub async fn companion_pairing_submit_proof(
     expires_at: String,
 ) -> Result<PairingStatus, String> {
     validate_pairing_input(&challenge_id, &challenge_secret)?;
+    let auth = Some(format!("Companion-Pairing {challenge_secret}"));
     let status: PairingStatus = request_json(
         Method::GET,
         &format!("/pairing-challenges/{challenge_id}"),
         None,
-        Some(format!("Companion-Pairing {challenge_secret}")),
+        auth.clone(),
     ).await?;
-    if status.status.as_deref() != Some("approved") {
-        return Err("COMPANION_PAIRING_NOT_APPROVED".into());
+    if status.status.as_deref() != Some("pending") {
+        if status.status.as_deref() == Some("approved") && status.proof_verified {
+            return Ok(status);
+        }
+        return Err("COMPANION_PAIRING_NOT_PENDING".into());
+    }
+    if status.proof_verified {
+        return Ok(status);
     }
     let expiry = expiry_unix(&expires_at)?;
     let identity: CompanionIdentityInfo = companion_identity_get()?;
@@ -232,13 +239,13 @@ pub async fn companion_pairing_submit_proof(
         Method::POST,
         &format!("/pairing-challenges/{challenge_id}/proof"),
         Some(json!({"algorithm": "Ed25519", "signature": signature})),
-        Some(format!("Companion-Pairing {challenge_secret}")),
+        auth.clone(),
     ).await?;
     request_json(
         Method::GET,
         &format!("/pairing-challenges/{challenge_id}"),
         None,
-        Some(format!("Companion-Pairing {challenge_secret}")),
+        auth,
     ).await
 }
 
