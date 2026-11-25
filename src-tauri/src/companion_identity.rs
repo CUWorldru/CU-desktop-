@@ -10,13 +10,15 @@ use tauri::command;
 use windows_sys::Win32::{
     Foundation::{GetLastError, ERROR_NOT_FOUND},
     Security::Credentials::{
-        CredFree, CredReadW, CredWriteW, CREDENTIALW, CRED_PERSIST_LOCAL_MACHINE,
+        CredDeleteW, CredFree, CredReadW, CredWriteW, CREDENTIALW, CRED_PERSIST_LOCAL_MACHINE,
         CRED_TYPE_GENERIC,
     },
 };
 
 const CREDENTIAL_TARGET: &str = "CU.Desktop.Companion.Ed25519.v1";
 const CREDENTIAL_USER: &str = "CU Desktop Companion identity";
+const SESSION_TARGET: &str = "CU.Desktop.Companion.Session.v1";
+const SESSION_USER: &str = "CU Desktop Companion session";
 const UUID_CHARS: &[u8] = b"0123456789abcdef-";
 const HEX_CHARS: &[u8] = b"0123456789abcdef";
 static IDENTITY_LOCK: Mutex<()> = Mutex::new(());
@@ -183,4 +185,100 @@ pub fn companion_identity_sign(
         challenge_id, expires_at, key_fingerprint, server_nonce
     );
     Ok(URL_SAFE_NO_PAD.encode(key.sign(transcript.as_bytes()).as_ref()))
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct StoredCompanionSession {
+    access_token: String,
+    access_expires_at: String,
+    refresh_token: String,
+    refresh_expires_at: String,
+    session_id: String,
+    device_id: String,
+    device_name: String,
+    generation: u64,
+}
+
+fn valid_opaque_token(value: &str) -> bool {
+    URL_SAFE_NO_PAD.decode(value)
+        .map(|bytes| bytes.len() == 32 && URL_SAFE_NO_PAD.encode(bytes) == value)
+        .unwrap_or(false)
+}
+
+fn write_credential(target_name: &str, username_value: &str, blob: &[u8]) -> Result<(), String> {
+    if blob.is_empty() || blob.len() > 2048 {
+        return Err("COMPANION_SESSION_INVALID".into());
+    }
+    let target = wide(target_name);
+    let username = wide(username_value);
+    let mut credential: CREDENTIALW = unsafe { std::mem::zeroed() };
+    credential.Type = CRED_TYPE_GENERIC;
+    credential.TargetName = target.as_ptr() as *mut u16;
+    credential.CredentialBlobSize = blob.len() as u32;
+    credential.CredentialBlob = blob.as_ptr() as *mut u8;
+    credential.Persist = CRED_PERSIST_LOCAL_MACHINE;
+    credential.UserName = username.as_ptr() as *mut u16;
+    if unsafe { CredWriteW(&credential, 0) } == 0 {
+        return Err("COMPANION_SESSION_STORE_WRITE_FAILED".into());
+    }
+    Ok(())
+}
+
+fn delete_credential(target_name: &str) -> Result<(), String> {
+    let target = wide(target_name);
+    let ok = unsafe { CredDeleteW(target.as_ptr(), CRED_TYPE_GENERIC, 0) };
+    if ok == 0 {
+        let error = unsafe { GetLastError() };
+        if error == ERROR_NOT_FOUND { return Ok(()); }
+        return Err("COMPANION_SESSION_STORE_DELETE_FAILED".into());
+    }
+    Ok(())
+}
+
+#[command]
+pub fn companion_session_store(
+    access_token: String,
+    access_expires_at: String,
+    refresh_token: String,
+    refresh_expires_at: String,
+    session_id: String,
+    device_id: String,
+    device_name: String,
+    generation: u64,
+) -> Result<(), String> {
+    if !valid_opaque_token(&access_token) || !valid_opaque_token(&refresh_token)
+        || !valid_uuid(&session_id) || !valid_uuid(&device_id)
+        || access_expires_at.len() > 40 || refresh_expires_at.len() > 40
+        || device_name.trim().is_empty() || device_name.len() > 80
+    {
+        return Err("COMPANION_SESSION_INVALID".into());
+    }
+    let session = StoredCompanionSession {
+        access_token, access_expires_at, refresh_token, refresh_expires_at,
+        session_id, device_id, device_name: device_name.trim().to_string(), generation,
+    };
+    let mut encoded = serde_json::to_vec(&session)
+        .map_err(|_| "COMPANION_SESSION_INVALID".to_string())?;
+    let result = write_credential(SESSION_TARGET, SESSION_USER, &encoded);
+    encoded.zeroize();
+    result
+}
+
+#[command]
+pub fn companion_session_clear() -> Result<(), String> {
+    delete_credential(SESSION_TARGET)
+}
+
+#[command]
+pub fn companion_session_is_present() -> Result<bool, String> {
+    let target = wide(SESSION_TARGET);
+    let mut credential: *mut CREDENTIALW = ptr::null_mut();
+    let ok = unsafe { CredReadW(target.as_ptr(), CRED_TYPE_GENERIC, 0, &mut credential) };
+    if ok == 0 {
+        let error = unsafe { GetLastError() };
+        if error == ERROR_NOT_FOUND { return Ok(false); }
+        return Err("COMPANION_SESSION_STORE_READ_FAILED".into());
+    }
+    unsafe { CredFree(credential as *const c_void); }
+    Ok(true)
 }
