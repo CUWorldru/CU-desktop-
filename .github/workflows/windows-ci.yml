@@ -49,7 +49,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: CUWorldru/journey-structure-import-82fde408
-          ref: 6626c81417960a0fe6721b28000bff5aa8d51587
+          ref: 826e90c2470154ccf8602a6835ca576d1560c57c
           token: ${{ secrets.CU_SOURCE_READ_TOKEN }}
           path: private-cu
           persist-credentials: false
