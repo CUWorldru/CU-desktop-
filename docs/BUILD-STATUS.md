@@ -1,46 +1,36 @@
 # Build and Validation Status
 
-## Implemented in the repository
-- Vite + TypeScript frontend scaffold.
-- Tauri 2 + Rust application scaffold.
-- Windows-oriented main window configuration.
+## Implemented
+- Vite + TypeScript diagnostic shell.
+- Tauri 2 + Rust Windows application shell.
 - Rust system tray with Open and Quit actions.
 - Closing the main window hides it instead of terminating the process.
 - Tauri notification plugin registration and a frontend permission/send smoke-test control.
-- Tauri HTTP plugin registration with an allowlist limited to the CU server-function endpoint.
-- Minimal Tauri capability file granting core defaults and notification defaults.
+- Tauri HTTP plugin with a capability allowlist limited to `https://seeyoumore.ru/_serverFn/**`.
+- Dedicated private CU desktop SPA build target merged into private CU `main`.
+- Public Windows workflow that checks out a pinned private CU commit, builds the CU desktop SPA, stages it into Tauri, and packages an NSIS installer.
+- Pull-request checks are isolated from the private-source token; only trusted pushes to `main` and manual dispatch can access private source.
 
 ## Confirmed validation
-- GitHub Actions Windows x64 run **passed** on 2026-11-25 for commit `79bf9672d1b050ae124198ffd2c234aaef060454`.
-- The successful run completed `npm ci`, TypeScript check + Vite production build, and Rust `cargo check --locked`.
-- `package-lock.json` and `src-tauri/Cargo.lock` are committed, so dependency resolution is reproducible.
-- [Locked Windows CI run](https://github.com/CUWorldru/CU-desktop-/actions/runs/45536345904)
+- The Tauri shell previously passed Windows x64 frontend typecheck/build and Rust `cargo check --locked` in GitHub Actions.
+- Private CU PR #145 was merged to private `main` at commit `2175e7d5327a4d45854d5d8a1b80c964ab537c54`.
+- The private repository's Actions validation could not allocate a runner before merge; therefore the private CU desktop build has not yet been confirmed by CI.
+- The first end-to-end Windows installer workflow is now configured but still requires the one-time repository secrets and a successful packaging run.
 
-This confirms that the current frontend scaffold and Rust shell compile on the Windows runner. It does not yet prove that the full CU application works inside the shell.
+## Required one-time configuration
+See [README](../README.md#one-time-github-configuration) for the exact secret names and minimum permissions.
 
-## Not yet verified
-- The private CU source desktop build target is in draft PR [#145](https://github.com/CUWorldru/journey-structure-import-82fde408/pull/145); it has not been merged into the private source `main`.
-- The Tauri shell still displays a diagnostic placeholder, not the CU application.
-- The notification smoke test has not yet been run interactively on a Windows machine.
-- Tray behavior, process lifecycle, single-instance behavior, startup, media, and calls require hands-on Windows testing.
-- A temporary CU icon is present to satisfy Windows resource compilation; replace it with final approved branding before release.
-- Installer bundling is intentionally disabled until the release-signing plan is ready.
+## First build procedure
+1. Add the required Actions secrets to the public `CU-desktop-` repository.
+2. Open **Actions → CU Desktop — Windows CI**.
+3. Run the workflow on `main`.
+4. Download the `CU-Desktop-Windows-x64` artifact from the successful run.
 
-## Local prerequisites
-- Windows 10/11 x64 for the first target.
-- Node.js 22 or newer and npm.
-- Rust stable toolchain (the current notification plugin requires Rust 1.90 or newer).
-- Microsoft WebView2 Runtime / Evergreen Runtime.
+## Not yet verified on a Windows machine
+- First full CU installer build and install.
+- Login, OAuth/deep links, Supabase Auth/Realtime, calls and media.
+- Windows notification delivery, tray lifecycle, background behavior, and restart.
+- Code signing and automatic updates.
 
-## Local shell commands
-```powershell
-npm ci
-npm run tauri -- dev
-```
-
-To check the frontend independently:
-```powershell
-npm run build
-```
-
-Do not treat a successful frontend-only build or `cargo check` as proof that the complete CU application, Windows notifications, tray lifecycle, media, or calls work end-to-end.
+## Important
+The first installer is a test build. It is not signed and should not be treated as a production release. The compiled client is included in the installer; private source files are not committed to this public repository.
