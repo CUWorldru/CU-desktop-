@@ -1,0 +1,32 @@
+# Node / frontend
+node_modules/
+dist/
+.output/
+.vite/
+.turbo/
+
+# Rust / Tauri
+target/
+src-tauri/target/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+*.key
+*.keystore
+*.jks
+
+# Local CU checkout / generated private assets
+/.cu-source/
+/.cu-build/
+/private-artifacts/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
