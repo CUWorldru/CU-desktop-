@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Minimal permissions for the CU Desktop main window",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "notification:default"
+  ]
+}
