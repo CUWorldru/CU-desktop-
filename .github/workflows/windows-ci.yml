@@ -34,3 +34,12 @@ jobs:
 
       - name: Compile Tauri Rust shell
         run: cargo check --manifest-path src-tauri/Cargo.toml
+
+      - name: Export generated lockfiles for pinning
+        uses: actions/upload-artifact@v4
+        with:
+          name: cu-desktop-lockfiles
+          path: |
+            package-lock.json
+            src-tauri/Cargo.lock
+          if-no-files-found: error
