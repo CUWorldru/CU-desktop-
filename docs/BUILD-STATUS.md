@@ -10,8 +10,8 @@
 - Minimal Tauri capability file granting core defaults and notification defaults.
 
 ## Not yet verified
-- No Windows build has been run in this environment.
-- No `package-lock.json` or `Cargo.lock` has been generated yet.
+- A Windows GitHub Actions check workflow has been added. No workflow run has been observed yet, so compilation is not confirmed.\n- No Windows build has been run in this environment.
+- No `package-lock.json` or `Cargo.lock` has been generated yet; the initial CI currently uses `npm install` and is not yet lockfile-reproducible.
 - The current Vite page is a diagnostic placeholder, not the CU application.
 - The notification smoke test has not yet been run on Windows. The Tauri notification plugin documents that Windows notifications work for installed apps; development mode is not a reliable end-to-end validation target.
 - Tray behavior, process lifecycle, single-instance behavior, startup, media, and calls require Windows testing.
