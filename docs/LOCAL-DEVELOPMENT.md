@@ -13,16 +13,16 @@ workspace/
 - Never commit `.env`, local configuration, credentials, generated private assets, or source bundles.
 - Keep local build output in ignored directories such as `.cu-build/`.
 - Pin and record the exact private source commit used for every compatibility test.
-- The desktop build must use a dedicated desktop target in the CU source, not the Android/iOS Capacitor build target.
+- Use the dedicated desktop build target from the private CU source review branch; do not use the Android/iOS Capacitor build target.
 
-## Current implementation gate
-The CU source currently has a web SSR/PWA build and a Capacitor SPA build. A dedicated Windows desktop build marker/runtime seam has not yet been implemented. Until that reviewed source change exists, do not claim that the full CU frontend is ready to load in Tauri.
+## Current integration gate
+The private CU source desktop build is available on draft PR [#145](https://github.com/CUWorldru/journey-structure-import-82fde408/pull/145), branch `feat/cu-desktop-build-target`. It is not merged into private `main` yet, and its private Actions validation has not completed successfully. Keep the Tauri shell on its diagnostic placeholder until that source change is reviewed and validated.
 
 ## Planned local flow
 1. Clone the private CU source into a sibling directory using the owner's normal GitHub access.
-2. Checkout the exact source commit selected for the desktop compatibility spike.
-3. After the dedicated desktop build target is approved and implemented, build the static desktop assets locally.
-4. Point the Tauri shell at the local generated asset directory.
+2. Checkout the exact desktop source commit approved for the compatibility spike.
+3. Build the private source with `npm run build:desktop` after the desktop target is approved.
+4. Point the Tauri shell at the generated local static assets without copying them into this public repository.
 5. Run Windows-specific auth, Realtime, notification, file, and call tests.
 6. Keep the private checkout and generated bundle out of this public repository and its public artifacts.
 
