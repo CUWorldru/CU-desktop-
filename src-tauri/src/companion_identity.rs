@@ -4,7 +4,7 @@ use ring::{
     rand::SystemRandom,
     signature::{Ed25519KeyPair, KeyPair},
 };
-use std::{ffi::c_void, ptr};
+use std::{ffi::c_void, ptr, sync::Mutex};
 use tauri::command;
 use windows_sys::Win32::{
     Foundation::{GetLastError, ERROR_NOT_FOUND},
@@ -18,6 +18,7 @@ const CREDENTIAL_TARGET: &str = "CU.Desktop.Companion.Ed25519.v1";
 const CREDENTIAL_USER: &str = "CU Desktop Companion identity";
 const UUID_CHARS: &[u8] = b"0123456789abcdef-";
 const HEX_CHARS: &[u8] = b"0123456789abcdef";
+static IDENTITY_LOCK: Mutex<()> = Mutex::new(());
 
 #[derive(serde::Serialize)]
 pub struct CompanionIdentityInfo {
@@ -85,6 +86,7 @@ fn write_private_key(pkcs8: &[u8]) -> Result<(), String> {
 }
 
 fn load_or_create_keypair() -> Result<Ed25519KeyPair, String> {
+    let _guard = IDENTITY_LOCK.lock().map_err(|_| "COMPANION_IDENTITY_LOCK_FAILED")?;
     if let Some(pkcs8) = read_private_key()? {
         return Ed25519KeyPair::from_pkcs8(&pkcs8)
             .map_err(|_| "COMPANION_IDENTITY_STORE_INVALID".into());
@@ -135,8 +137,13 @@ fn valid_fingerprint(value: &str) -> bool {
 }
 
 fn valid_nonce(value: &str) -> bool {
-    value.len() == 43
-        && value.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
+    if value.len() != 43 {
+        return false;
+    }
+    URL_SAFE_NO_PAD
+        .decode(value)
+        .map(|decoded| decoded.len() == 32 && URL_SAFE_NO_PAD.encode(decoded) == value)
+        .unwrap_or(false)
 }
 
 #[command]
