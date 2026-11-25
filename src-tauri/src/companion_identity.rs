@@ -5,6 +5,7 @@ use ring::{
     signature::{Ed25519KeyPair, KeyPair},
 };
 use std::{ffi::c_void, ptr, sync::Mutex};
+use zeroize::Zeroize;
 use tauri::command;
 use windows_sys::Win32::{
     Foundation::{GetLastError, ERROR_NOT_FOUND},
@@ -87,9 +88,11 @@ fn write_private_key(pkcs8: &[u8]) -> Result<(), String> {
 
 fn load_or_create_keypair() -> Result<Ed25519KeyPair, String> {
     let _guard = IDENTITY_LOCK.lock().map_err(|_| "COMPANION_IDENTITY_LOCK_FAILED")?;
-    if let Some(pkcs8) = read_private_key()? {
-        return Ed25519KeyPair::from_pkcs8(&pkcs8)
-            .map_err(|_| "COMPANION_IDENTITY_STORE_INVALID".into());
+    if let Some(mut pkcs8) = read_private_key()? {
+        let keypair = Ed25519KeyPair::from_pkcs8(&pkcs8)
+            .map_err(|_| "COMPANION_IDENTITY_STORE_INVALID".to_string());
+        pkcs8.zeroize();
+        return keypair;
     }
 
     let rng = SystemRandom::new();
@@ -161,6 +164,7 @@ pub fn companion_identity_sign(
 ) -> Result<String, String> {
     if !valid_uuid(&challenge_id)
         || expires_at <= 0
+        || expires_at > 9_007_199_254_740_991
         || !valid_fingerprint(&key_fingerprint)
         || !valid_nonce(&server_nonce)
     {
