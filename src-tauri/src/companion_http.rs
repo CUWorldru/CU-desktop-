@@ -113,6 +113,7 @@ pub struct PairingQrPayload {
 pub struct PairingStartResult {
     qr_payload: PairingQrPayload,
     key_fingerprint: String,
+    server_nonce: String,
     poll_after_seconds: u64,
 }
 
@@ -143,6 +144,7 @@ pub async fn companion_pairing_start(device_name: String) -> Result<PairingStart
             device_name: name.to_string(),
         },
         key_fingerprint: created.key_fingerprint,
+        server_nonce: created.server_nonce,
         poll_after_seconds: created.poll_after_seconds.clamp(1, 10),
     })
 }
