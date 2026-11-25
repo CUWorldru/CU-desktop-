@@ -1,7 +1,7 @@
 use tauri::{
     image::Image,
     menu::{Menu, MenuItem},
-    tray::TrayIconBuilder,
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Manager, WindowEvent,
 };
 
@@ -40,6 +40,26 @@ pub fn run() {
                 .icon(tray_icon())
                 .tooltip("CU Desktop")
                 .menu(&menu)
+                .show_menu_on_left_click(false)
+                .on_tray_icon_event(|tray, event| {
+                    let should_open = matches!(
+                        event,
+                        TrayIconEvent::Click {
+                            button: MouseButton::Left,
+                            button_state: MouseButtonState::Up,
+                            ..
+                        } | TrayIconEvent::DoubleClick {
+                            button: MouseButton::Left,
+                            ..
+                        }
+                    );
+                    if should_open {
+                        if let Some(window) = tray.app_handle().get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                })
                 .on_menu_event(|app, event| match event.id().as_ref() {
                     "open" => {
                         if let Some(window) = app.get_webview_window("main") {
