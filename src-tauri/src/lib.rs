@@ -7,6 +7,8 @@ use tauri::{
 
 #[cfg(windows)]
 mod companion_identity;
+#[cfg(windows)]
+mod companion_http;
 
 fn tray_icon() -> Image<'static> {
     // Draw a tiny monochrome CU mark in memory so the first shell does not
@@ -42,7 +44,13 @@ pub fn run() {
         companion_identity::companion_identity_sign,
         companion_identity::companion_session_info,
         companion_identity::companion_session_clear,
-        companion_identity::companion_session_is_present
+        companion_identity::companion_session_is_present,
+        companion_http::companion_pairing_start,
+        companion_http::companion_pairing_poll,
+        companion_http::companion_pairing_submit_proof,
+        companion_http::companion_pairing_exchange,
+        companion_http::companion_session_refresh,
+        companion_http::companion_session_revoke
     ]);
 
     builder
