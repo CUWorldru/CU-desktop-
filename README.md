@@ -10,7 +10,7 @@ It combines the full CU experience with a dedicated desktop Work mode.
 - Windows integration: background operation, system tray, native notifications, startup controls, file flows, and signed updates.
 
 ## Current status
-Foundation, compatibility assessment, and an initial Tauri 2 shell are committed. The shell includes a Rust system-tray menu, close-to-tray behavior, and a Windows notification smoke-test control. Its current Vite screen is only a diagnostic placeholder: the private CU frontend is not connected yet. The current CU source has a Capacitor SPA build for Android/iOS, but no dedicated Windows/Tauri build target. The mobile bundle will not be reused unchanged. The next implementation gate is a separate desktop build/runtime seam in the private CU source, followed by Windows compilation and integration testing.
+Foundation, compatibility assessment, and an initial Tauri 2 shell are committed. The shell includes a Rust system-tray menu, close-to-tray behavior, and a Windows notification smoke-test control. Its current Vite screen is only a diagnostic placeholder: the private CU frontend is not connected yet. The current CU source has a Capacitor SPA build for Android/iOS, but no dedicated Windows/Tauri build target. The mobile bundle will not be reused unchanged. A separate desktop build/runtime patch is being prepared on a review branch in the private CU source. The Tauri shell now has a narrowly scoped HTTP bridge for the CU server-function endpoint, but the CU frontend is not connected until that source patch is reviewed and merged.
 
 ## Architecture and decisions
 - [Architecture](docs/ARCHITECTURE.md)
