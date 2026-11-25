@@ -9,11 +9,17 @@ It combines the full CU experience with a dedicated desktop Work mode.
 - Work mode: desktop workspace for multitasking, multiple work areas, side-by-side conversations and content, files, and contextual AI.
 - Windows integration: background operation, system tray, native notifications, startup controls, file flows, and signed updates.
 
-## Architecture
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for product boundaries, proposed technology, security requirements, and delivery stages.
+## Current status
+Foundation and compatibility assessment are recorded. The current CU source has a Capacitor SPA build for Android/iOS, but no dedicated Windows/Tauri build target. The mobile bundle will not be reused unchanged. The next implementation gate is a separate desktop build/runtime seam in the private CU source, followed by the Tauri shell in this repository.
 
-## Status
-Foundation and compatibility-planning phase. Tauri 2 + Rust + WebView2 is the proposed shell and must pass a compatibility spike before being treated as final.
+## Architecture and decisions
+- [Architecture](docs/ARCHITECTURE.md)
+- [CU compatibility assessment](docs/CU-COMPATIBILITY.md)
+- [Desktop UX](docs/DESKTOP-UX.md)
+- [Security baseline](docs/SECURITY.md)
+- [Roadmap](docs/ROADMAP.md)
+- [Release process](docs/RELEASES.md)
+- [ADR 0001: separate desktop build boundary](docs/adr/0001-desktop-build-boundary.md)
 
 ## Repository boundary
 This repository contains desktop-specific code and documentation. The existing CU application and backend remain authoritative. The private CU source must never be copied into this public repository.
