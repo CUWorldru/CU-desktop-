@@ -5,6 +5,9 @@ use tauri::{
     Manager, WindowEvent,
 };
 
+#[cfg(windows)]
+mod companion_identity;
+
 fn tray_icon() -> Image<'static> {
     // Draw a tiny monochrome CU mark in memory so the first shell does not
     // depend on a generated binary icon asset. Replace with approved branding
@@ -29,9 +32,17 @@ fn tray_icon() -> Image<'static> {
 }
 
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
-        .plugin(tauri_plugin_http::init())
+        .plugin(tauri_plugin_http::init());
+
+    #[cfg(windows)]
+    let builder = builder.invoke_handler(tauri::generate_handler![
+        companion_identity::companion_identity_get,
+        companion_identity::companion_identity_sign
+    ]);
+
+    builder
         .setup(|app| {
             let open = MenuItem::with_id(app, "open", "Open CU Desktop", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "Quit CU Desktop", true, None::<&str>)?;
