@@ -7,6 +7,14 @@
   ],
   "permissions": [
     "core:default",
-    "notification:default"
+    "notification:default",
+    {
+      "identifier": "http:default",
+      "allow": [
+        {
+          "url": "https://seeyoumore.ru/_serverFn/**"
+        }
+      ]
+    }
   ]
 }
