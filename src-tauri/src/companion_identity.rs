@@ -235,36 +235,6 @@ fn delete_credential(target_name: &str) -> Result<(), String> {
     Ok(())
 }
 
-#[command]
-pub fn companion_session_store(
-    access_token: String,
-    access_expires_at: String,
-    refresh_token: String,
-    refresh_expires_at: String,
-    session_id: String,
-    device_id: String,
-    device_name: String,
-    generation: u64,
-) -> Result<(), String> {
-    if !valid_opaque_token(&access_token) || !valid_opaque_token(&refresh_token)
-        || !valid_uuid(&session_id) || !valid_uuid(&device_id)
-        || access_expires_at.len() > 40 || refresh_expires_at.len() > 40
-        || device_name.trim().is_empty() || device_name.len() > 80
-    {
-        return Err("COMPANION_SESSION_INVALID".into());
-    }
-    let session = StoredCompanionSession {
-        access_token, access_expires_at, refresh_token, refresh_expires_at,
-        session_id, device_id, device_name: device_name.trim().to_string(), generation,
-    };
-    let mut encoded = serde_json::to_vec(&session)
-        .map_err(|_| "COMPANION_SESSION_INVALID".to_string())?;
-    let result = write_credential(SESSION_TARGET, SESSION_USER, &encoded);
-    encoded.zeroize();
-    result
-}
-
-
 fn read_session() -> Result<Option<StoredCompanionSession>, String> {
     let target = wide(SESSION_TARGET);
     let mut credential: *mut CREDENTIALW = ptr::null_mut();
