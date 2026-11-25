@@ -743,6 +743,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-http",
  "tauri-plugin-notification",
+ "tokio",
  "windows-sys 0.61.2",
  "zeroize",
 ]
