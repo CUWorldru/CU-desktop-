@@ -18,6 +18,7 @@
 
 ## Phase 2 — Tauri shell
 - [x] Bootstrap the initial Tauri 2 + Rust + Vite shell in this repository.
+- [x] Pass Windows x64 CI for frontend typecheck/build and Rust compilation.
 - [ ] Load the locally bundled CU desktop assets (not the production website URL); the current frontend is only a shell smoke-test screen.
 - [x] Implement close-to-tray, explicit Quit, and restore from the tray menu or left-click.
 - [ ] Add single-instance behavior and test lifecycle on Windows.
