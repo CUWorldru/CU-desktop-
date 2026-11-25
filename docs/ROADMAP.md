@@ -19,8 +19,10 @@
 ## Phase 2 — Tauri shell
 - [x] Bootstrap the initial Tauri 2 + Rust + Vite shell in this repository.
 - [ ] Load the locally bundled CU desktop assets (not the production website URL); the current frontend is only a shell smoke-test screen.
-- [x] Implement initial close-to-tray, restore, and explicit Quit behavior.\n- [ ] Add single-instance behavior and test lifecycle on Windows.
-- [x] Add the native notification plugin and a permission/send smoke-test control.\n- [ ] Validate notification delivery and click-through routing on Windows.
+- [x] Implement initial close-to-tray, restore, and explicit Quit behavior.
+- [ ] Add single-instance behavior and test lifecycle on Windows.
+- [x] Add the native notification plugin and a permission/send smoke-test control.
+- [ ] Validate notification delivery and click-through routing in an installed Windows build.
 - [ ] Implement startup controls and secure file open/save flows.
 
 ## Phase 3 — Work mode
