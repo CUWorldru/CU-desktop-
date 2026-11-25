@@ -13,6 +13,9 @@
       "allow": [
         {
           "url": "https://seeyoumore.ru/_serverFn/**"
+        },
+        {
+          "url": "https://seeyoumore.ru/api/companion/v1/**"
         }
       ]
     }
