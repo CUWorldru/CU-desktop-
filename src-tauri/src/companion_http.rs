@@ -2,6 +2,7 @@ use crate::companion_identity::{
     companion_identity_get, companion_identity_sign, delete_credential, read_session,
     write_credential, CompanionIdentityInfo, StoredCompanionSession,
 };
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use chrono::{DateTime, Utc};
 use reqwest::{header, Client, Method, StatusCode};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -156,10 +157,27 @@ pub struct PairingStatus {
     pub proof_verified: bool,
 }
 
+fn valid_uuid(value: &str) -> bool {
+    value.len() == 36
+        && value.bytes().enumerate().all(|(i, byte)| {
+            if [8, 13, 18, 23].contains(&i) {
+                byte == b'-'
+            } else {
+                byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)
+            }
+        })
+        && matches!(value.as_bytes()[14], b'1'..=b'8')
+        && matches!(value.as_bytes()[19], b'8' | b'9' | b'a' | b'b')
+}
+
+fn valid_base64url_32(value: &str) -> bool {
+    URL_SAFE_NO_PAD.decode(value)
+        .map(|bytes| bytes.len() == 32 && URL_SAFE_NO_PAD.encode(bytes) == value)
+        .unwrap_or(false)
+}
+
 fn validate_pairing_input(challenge_id: &str, challenge_secret: &str) -> Result<(), String> {
-    if challenge_id.len() != 36 || challenge_secret.len() != 43
-        || !challenge_id.bytes().all(|b| b.is_ascii_hexdigit() || b == b'-')
-        || !challenge_secret.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-') {
+    if !valid_uuid(challenge_id) || !valid_base64url_32(challenge_secret) {
         return Err("COMPANION_PAIRING_INPUT_INVALID".into());
     }
     Ok(())
@@ -199,7 +217,10 @@ pub async fn companion_pairing_submit_proof(
     }
     let expiry = expiry_unix(&expires_at)?;
     let identity: CompanionIdentityInfo = companion_identity_get()?;
-    if identity.key_fingerprint != key_fingerprint {
+    if identity.key_fingerprint != key_fingerprint
+        || key_fingerprint.len() != 64
+        || !key_fingerprint.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        || !valid_base64url_32(&server_nonce) {
         return Err("COMPANION_PROOF_KEY_MISMATCH".into());
     }
     let signature = companion_identity_sign(
@@ -257,8 +278,8 @@ fn persist_session(
 ) -> Result<(), String> {
     expiry_unix(&access_expires_at)?;
     expiry_unix(&refresh_expires_at)?;
-    if access_token.len() != 43 || refresh_token.len() != 43
-        || session_id.len() != 36 || device_id.len() != 36
+    if !valid_base64url_32(&access_token) || !valid_base64url_32(&refresh_token)
+        || !valid_uuid(&session_id) || !valid_uuid(&device_id)
         || device_name.trim().is_empty() || device_name.len() > 80 {
         return Err("COMPANION_RESPONSE_INVALID".into());
     }
