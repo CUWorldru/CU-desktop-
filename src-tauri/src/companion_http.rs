@@ -181,6 +181,9 @@ pub async fn companion_pairing_poll(
 pub async fn companion_pairing_submit_proof(
     challenge_id: String,
     challenge_secret: String,
+    server_nonce: String,
+    key_fingerprint: String,
+    expires_at: String,
 ) -> Result<PairingStatus, String> {
     validate_pairing_input(&challenge_id, &challenge_secret)?;
     let status: PairingStatus = request_json(
@@ -192,22 +195,26 @@ pub async fn companion_pairing_submit_proof(
     if status.status.as_deref() != Some("approved") {
         return Err("COMPANION_PAIRING_NOT_APPROVED".into());
     }
+    let expiry = expiry_unix(&expires_at)?;
     let identity: CompanionIdentityInfo = companion_identity_get()?;
-    let expires_at = status.expires_at.as_deref()
-        .ok_or_else(|| "COMPANION_RESPONSE_INVALID".to_string())?;
-    let expiry = expiry_unix(expires_at)?;
-    let created: ChallengeCreated = ChallengeCreated {
-        challenge_id: challenge_id.clone(),
-        challenge_secret: challenge_secret.clone(),
-        key_fingerprint: identity.key_fingerprint.clone(),
-        server_nonce: String::new(),
-        expires_at: expires_at.to_string(),
-        poll_after_seconds: 2,
-    };
-    let _ = created;
-    // The nonce is intentionally not exposed by the status route. The native client
-    // must retain the original challenge response in the pairing UI state to sign it.
-    Err("COMPANION_PAIRING_NONCE_REQUIRED".into())
+    if identity.key_fingerprint != key_fingerprint {
+        return Err("COMPANION_PROOF_KEY_MISMATCH".into());
+    }
+    let signature = companion_identity_sign(
+        challenge_id.clone(), expiry, key_fingerprint, server_nonce
+    )?;
+    let _: Value = request_json(
+        Method::POST,
+        &format!("/pairing-challenges/{challenge_id}/proof"),
+        Some(json!({"algorithm": "Ed25519", "signature": signature})),
+        Some(format!("Companion-Pairing {challenge_secret}")),
+    ).await?;
+    request_json(
+        Method::GET,
+        &format!("/pairing-challenges/{challenge_id}"),
+        None,
+        Some(format!("Companion-Pairing {challenge_secret}")),
+    ).await
 }
 
 #[derive(Deserialize)]
@@ -225,24 +232,43 @@ struct ExchangeDevice {
     device_id: String,
     device_name: String,
 }
+#[derive(Deserialize)]
+struct RefreshResponse {
+    access_token: String,
+    access_expires_at: String,
+    refresh_token: String,
+    refresh_expires_at: String,
+    session_id: String,
+    device_id: String,
+    generation: u64,
+}
 
-fn store_session(response: ExchangeResponse) -> Result<(), String> {
-    expiry_unix(&response.access_expires_at)?;
-    expiry_unix(&response.refresh_expires_at)?;
-    if response.access_token.len() != 43 || response.refresh_token.len() != 43
-        || response.session_id.len() != 36 || response.device.device_id.len() != 36
-        || response.device.device_name.trim().is_empty() || response.device.device_name.len() > 80 {
+fn persist_session(
+    access_token: String,
+    access_expires_at: String,
+    refresh_token: String,
+    refresh_expires_at: String,
+    session_id: String,
+    device_id: String,
+    device_name: String,
+    generation: u64,
+) -> Result<(), String> {
+    expiry_unix(&access_expires_at)?;
+    expiry_unix(&refresh_expires_at)?;
+    if access_token.len() != 43 || refresh_token.len() != 43
+        || session_id.len() != 36 || device_id.len() != 36
+        || device_name.trim().is_empty() || device_name.len() > 80 {
         return Err("COMPANION_RESPONSE_INVALID".into());
     }
     let session = StoredCompanionSession {
-        access_token: response.access_token,
-        access_expires_at: response.access_expires_at,
-        refresh_token: response.refresh_token,
-        refresh_expires_at: response.refresh_expires_at,
-        session_id: response.session_id,
-        device_id: response.device.device_id,
-        device_name: response.device.device_name,
-        generation: response.generation,
+        access_token,
+        access_expires_at,
+        refresh_token,
+        refresh_expires_at,
+        session_id,
+        device_id,
+        device_name,
+        generation,
     };
     let mut encoded = serde_json::to_vec(&session)
         .map_err(|_| "COMPANION_SESSION_STORE_WRITE_FAILED".to_string())?;
@@ -263,7 +289,12 @@ pub async fn companion_pairing_exchange(
         Some(json!({"challenge_id": challenge_id, "challenge_secret": challenge_secret})),
         None,
     ).await?;
-    store_session(response)
+    persist_session(
+        response.access_token, response.access_expires_at,
+        response.refresh_token, response.refresh_expires_at,
+        response.session_id, response.device.device_id,
+        response.device.device_name, response.generation,
+    )
 }
 
 #[command]
@@ -272,7 +303,7 @@ pub async fn companion_session_refresh() -> Result<(), String> {
         .map_err(|_| "COMPANION_SESSION_LOCK_FAILED".to_string())?;
     let mut current = read_session()?.ok_or_else(|| "COMPANION_SESSION_NOT_FOUND".to_string())?;
     let refresh = current.refresh_token.clone();
-    let response = request_json::<ExchangeResponse>(
+    let response = request_json::<RefreshResponse>(
         Method::POST,
         "/sessions/refresh",
         Some(json!({"refresh_token": refresh})),
@@ -289,7 +320,12 @@ pub async fn companion_session_refresh() -> Result<(), String> {
             return Err(error);
         }
     };
-    store_session(response)
+    persist_session(
+        response.access_token, response.access_expires_at,
+        response.refresh_token, response.refresh_expires_at,
+        response.session_id, response.device_id,
+        current.device_name.clone(), response.generation,
+    )
 }
 
 #[command]
