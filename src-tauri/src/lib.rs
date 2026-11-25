@@ -2,6 +2,7 @@ use tauri::{
     image::Image,
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    webview::{PermissionKind, PermissionResponse},
     Manager, WindowEvent,
 };
 
@@ -36,7 +37,32 @@ fn tray_icon() -> Image<'static> {
 pub fn run() {
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
-        .plugin(tauri_plugin_http::init());
+        .plugin(tauri_plugin_http::init())
+        .on_permission_request(|webview, kind| {
+            // Only the bundled CU app or local Vite dev server may request
+            // media permissions. External pages never receive mic/camera access.
+            let trusted_app_origin = webview.url().map(|url| {
+                let host = url.host_str().unwrap_or_default();
+                let bundled_app = host == "tauri.localhost"
+                    || (url.scheme() == "tauri" && host == "localhost");
+                let local_dev = cfg!(debug_assertions)
+                    && matches!(host, "localhost" | "127.0.0.1" | "::1");
+                bundled_app || local_dev
+            }).unwrap_or(false);
+
+            if !trusted_app_origin {
+                return match kind {
+                    PermissionKind::Microphone | PermissionKind::Camera => PermissionResponse::Deny,
+                    _ => PermissionResponse::Default,
+                };
+            }
+
+            match kind {
+                // WebView2 handles the actual Windows device/OS permission flow.
+                PermissionKind::Microphone | PermissionKind::Camera => PermissionResponse::Allow,
+                _ => PermissionResponse::Default,
+            }
+        });
 
     #[cfg(windows)]
     let builder = builder.invoke_handler(tauri::generate_handler![
