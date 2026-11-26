@@ -12,6 +12,8 @@
 - Pull-request checks are isolated from the private-source token; only trusted pushes to `main` and manual dispatch can access private source.
 
 ## Confirmed validation
+
+- Desktop messenger workspace now gives the selected conversation the full remaining width; the conversation list has a keyboard-accessible drag splitter (220–520 px), and the context inspector is collapsed by default and can be toggled from the chat toolbar. Source change: private CU commit `48526ad53bb81e5b5077063fedcac8c1458565cd`.
 - The Tauri shell previously passed Windows x64 frontend typecheck/build and Rust `cargo check --locked` in GitHub Actions.
 - Private CU PR #145 was merged to private `main` at commit `2175e7d5327a4d45854d5d8a1b80c964ab537c54`.
 - The private repository's Actions validation could not allocate a runner before merge; therefore the private CU desktop build has not yet been confirmed by CI.
