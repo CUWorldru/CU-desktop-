@@ -24,7 +24,7 @@ const HEX_CHARS: &[u8] = b"0123456789abcdef";
 static IDENTITY_LOCK: Mutex<()> = Mutex::new(());
 
 #[derive(serde::Serialize)]
-pub pub(super) struct CompanionIdentityInfo {
+pub(super) struct CompanionIdentityInfo {
     pub(super) public_key: String,
     pub(super) key_fingerprint: String,
 }
