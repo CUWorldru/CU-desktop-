@@ -289,7 +289,6 @@ struct ExchangeResponse {
     session_id: String,
     device: ExchangeDevice,
     generation: u64,
-    supabase_token_hash: Option<String>,
 }
 #[derive(Deserialize)]
 struct ExchangeDevice {
@@ -345,31 +344,20 @@ fn persist_session(
 pub async fn companion_pairing_exchange(
     challenge_id: String,
     challenge_secret: String,
-    authenticate_on_approval: bool,
-) -> Result<Option<String>, String> {
+) -> Result<(), String> {
     validate_pairing_input(&challenge_id, &challenge_secret)?;
     let response: ExchangeResponse = request_json(
         Method::POST,
         "/sessions/exchange",
-        Some(json!({"challenge_id": challenge_id, "challenge_secret": challenge_secret, "issue_auth_session": authenticate_on_approval})),
+        Some(json!({"challenge_id": challenge_id, "challenge_secret": challenge_secret})),
         None,
     ).await?;
-    if authenticate_on_approval {
-        let token_hash = response.supabase_token_hash.as_deref()
-            .ok_or_else(|| "COMPANION_RESPONSE_INVALID".to_string())?;
-        if token_hash.len() != 64
-            || !token_hash.bytes().all(|byte| byte.is_ascii_hexdigit()) {
-            return Err("COMPANION_RESPONSE_INVALID".into());
-        }
-    }
-    let token_hash = response.supabase_token_hash;
     persist_session(
         response.access_token, response.access_expires_at,
         response.refresh_token, response.refresh_expires_at,
         response.session_id, response.device.device_id,
         response.device.device_name, response.generation,
-    )?;
-    Ok(token_hash)
+    )
 }
 
 #[command]
