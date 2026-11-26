@@ -32,8 +32,28 @@ jobs:
       - name: Typecheck and build shell diagnostics
         run: npm run build
 
-      - name: Compile Tauri Rust shell
-        run: cargo check --locked --manifest-path src-tauri/Cargo.toml
+      - name: Compile Tauri Rust shell and resolve lockfile
+        run: cargo check --manifest-path src-tauri/Cargo.toml
+
+      - name: Capture Cargo.lock diagnostic diff
+        if: always()
+        shell: pwsh
+        run: |
+          git diff -- src-tauri/Cargo.lock | Out-File -FilePath cargo-lock-diff.patch -Encoding utf8
+          if ((git diff --quiet -- src-tauri/Cargo.lock) -eq $false) {
+            Write-Host "Cargo.lock changed during unlocked diagnostic check."
+          } else {
+            Write-Host "Cargo.lock remained unchanged during unlocked diagnostic check."
+          }
+
+      - name: Upload Cargo.lock diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: CU-Desktop-Cargo-Lock-Diagnostic
+          path: cargo-lock-diff.patch
+          if-no-files-found: warn
+          retention-days: 7
 
   windows-package:
     name: Build installable CU Desktop (Windows x64)
