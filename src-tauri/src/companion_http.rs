@@ -314,10 +314,31 @@ struct AccountSessionResponse {
 }
 
 #[command]
-pub async fn companion_account_session() -> Result<String, String> {
+pub async fn companion_account_session(auth_session_id: Option<String>) -> Result<String, String> {
     let mut current = read_session()?
         .ok_or_else(|| "COMPANION_SESSION_NOT_FOUND".to_string())?;
     let authorization = format!("Bearer {}", current.access_token);
+
+    // Second call, after Supabase verifyOtp: bind the exact Auth session ID
+    // from this Windows runtime to the currently paired Companion session.
+    if let Some(auth_session_id) = auth_session_id {
+        if !valid_uuid(&auth_session_id) {
+            current.access_token.zeroize();
+            current.refresh_token.zeroize();
+            return Err("COMPANION_RESPONSE_INVALID".into());
+        }
+        let response = request_json::<Value>(
+            Method::POST,
+            "/account/session/bind",
+            Some(json!({ "auth_session_id": auth_session_id })),
+            Some(authorization),
+        ).await;
+        current.access_token.zeroize();
+        current.refresh_token.zeroize();
+        response?;
+        return Ok("bound".into());
+    }
+
     let response = request_json::<AccountSessionResponse>(
         Method::POST,
         "/account/session",
