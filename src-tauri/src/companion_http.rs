@@ -315,7 +315,8 @@ struct AccountSessionResponse {
 
 #[command]
 pub async fn companion_account_session() -> Result<String, String> {
-    let mut current = read_session()?;
+    let mut current = read_session()?
+        .ok_or_else(|| "COMPANION_SESSION_NOT_FOUND".to_string())?;
     let authorization = format!("Bearer {}", current.access_token);
     let response = request_json::<AccountSessionResponse>(
         Method::POST,
