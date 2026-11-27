@@ -415,3 +415,22 @@ pub async fn companion_session_revoke() -> Result<(), String> {
         }
     }
 }
+
+
+/// Fetch the minimal account identity bound to the current Companion session.
+/// The account ID is resolved by the server from the validated opaque bearer.
+#[command]
+pub async fn companion_account_me() -> Result<Value, String> {
+    let mut current = read_session()?
+        .ok_or_else(|| "COMPANION_SESSION_NOT_FOUND".to_string())?;
+    let token = current.access_token.clone();
+    let result = request_json(
+        Method::GET,
+        "/account/me",
+        None,
+        Some(format!("Bearer {token}")),
+    ).await;
+    current.access_token.zeroize();
+    current.refresh_token.zeroize();
+    result
+}
