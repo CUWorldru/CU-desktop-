@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   windows-check:
@@ -38,7 +38,6 @@ jobs:
   windows-package:
     name: Build installable CU Desktop (Windows x64)
     needs: windows-check
-    # Never expose the private-source token to pull-request workflows.
     if: github.event_name != 'pull_request'
     runs-on: windows-latest
     steps:
@@ -103,8 +102,21 @@ jobs:
       - name: Install Desktop shell dependencies
         run: npm ci --no-audit --no-fund
 
-      - name: Generate CU Desktop app and shortcut icons
-        run: npm run tauri -- icon src-tauri/icons/cu-source.svg
+      - name: Generate CU Desktop app and shortcut icons from original SVG
+        run: npm run tauri -- icon src-tauri/icons/cu-source.svg --output src-tauri/icons
+
+      - name: Commit generated Windows icon into repository
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src-tauri/icons/icon.ico
+          if (git diff --cached --quiet) {
+            Write-Host "Windows icon is already up to date."
+          } else {
+            git commit -m "Generate Windows icon from original CU SVG"
+            git push
+          }
 
       - name: Build Windows installer
         run: npm run tauri:build -- --bundles nsis
