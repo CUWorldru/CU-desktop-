@@ -306,6 +306,36 @@ struct RefreshResponse {
     generation: u64,
 }
 
+#[derive(Deserialize)]
+struct AccountSessionResponse {
+    token_hash: String,
+    #[serde(rename = "type")]
+    token_type: String,
+}
+
+#[command]
+pub async fn companion_account_session() -> Result<String, String> {
+    let mut current = read_session()?;
+    let authorization = format!("Bearer {}", current.access_token);
+    let response = request_json::<AccountSessionResponse>(
+        Method::POST,
+        "/account/session",
+        None,
+        Some(authorization),
+    ).await;
+    current.access_token.zeroize();
+    current.refresh_token.zeroize();
+    let response = response?;
+    if response.token_type != "magiclink"
+        || response.token_hash.len() < 32
+        || response.token_hash.len() > 256
+        || !response.token_hash.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+    {
+        return Err("COMPANION_RESPONSE_INVALID".into());
+    }
+    Ok(response.token_hash)
+}
+
 fn persist_session(
     access_token: String,
     access_expires_at: String,
