@@ -306,6 +306,36 @@ struct RefreshResponse {
     generation: u64,
 }
 
+#[derive(Deserialize)]
+struct AccountSessionResponse {
+    token_hash: String,
+    #[serde(rename = "type")]
+    token_type: String,
+}
+
+#[command]
+pub async fn companion_account_session() -> Result<String, String> {
+    let mut current = read_session()?;
+    let authorization = format!("Bearer {}", current.access_token);
+    let response = request_json::<AccountSessionResponse>(
+        Method::POST,
+        "/account/session",
+        None,
+        Some(authorization),
+    ).await;
+    current.access_token.zeroize();
+    current.refresh_token.zeroize();
+    let response = response?;
+    if response.token_type != "magiclink"
+        || response.token_hash.len() < 32
+        || response.token_hash.len() > 256
+        || !response.token_hash.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+    {
+        return Err("COMPANION_RESPONSE_INVALID".into());
+    }
+    Ok(response.token_hash)
+}
+
 fn persist_session(
     access_token: String,
     access_expires_at: String,
@@ -414,4 +444,23 @@ pub async fn companion_session_revoke() -> Result<(), String> {
             Err(error)
         }
     }
+}
+
+
+/// Fetch the minimal account identity bound to the current Companion session.
+/// The account ID is resolved by the server from the validated opaque bearer.
+#[command]
+pub async fn companion_account_me() -> Result<Value, String> {
+    let mut current = read_session()?
+        .ok_or_else(|| "COMPANION_SESSION_NOT_FOUND".to_string())?;
+    let token = current.access_token.clone();
+    let result = request_json(
+        Method::GET,
+        "/account/me",
+        None,
+        Some(format!("Bearer {token}")),
+    ).await;
+    current.access_token.zeroize();
+    current.refresh_token.zeroize();
+    result
 }
