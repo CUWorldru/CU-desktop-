@@ -76,7 +76,8 @@ pub fn run() {
         companion_http::companion_pairing_submit_proof,
         companion_http::companion_pairing_exchange,
         companion_http::companion_session_refresh,
-        companion_http::companion_session_revoke
+        companion_http::companion_session_revoke,
+        companion_http::companion_account_me
     ]);
 
     builder
