@@ -103,6 +103,9 @@ jobs:
       - name: Install Desktop shell dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Generate CU Desktop app and shortcut icons
+        run: npm run tauri -- icon src-tauri/icons/cu-source.svg
+
       - name: Build Windows installer
         run: npm run tauri:build -- --bundles nsis
 
